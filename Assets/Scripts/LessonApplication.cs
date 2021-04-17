@@ -5,7 +5,7 @@ public class LessonApplication : MonoBehaviour
 {
     public static LessonApplication Instance;
 
-    public LessonModel model;
+    public LessonModel model { get; private set; }
     public LessonView view;
     public LessonController controller;
 

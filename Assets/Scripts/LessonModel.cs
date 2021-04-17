@@ -1,12 +1,11 @@
 using System;
 using System.Collections.Generic;
 
-[Serializable]
 public class LessonModel
 {
     public List<string> steps;
     public int stepNumber = 0;
-    public bool isFinished = false;
+    public bool IsFinished => stepNumber == steps.Count;
     public bool isFailed = false;
 
     public LessonModel(List<string> steps)
@@ -16,10 +15,9 @@ public class LessonModel
 
     public string GetCurrentStepDescription()
     {
-        if (stepNumber == steps.Count)
+        if (IsFinished)
         {
-            isFinished = true;
-            return "Complete!";
+            return "Урок успешно завершен!";
         }
 
         return steps[stepNumber];

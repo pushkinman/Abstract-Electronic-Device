@@ -1,88 +1,76 @@
 using System;
+using System.Collections;
 using UnityEngine;
 
 public class LessonController : MonoBehaviour
 {
-    public Action<string> onStepUpdated;
-    public Action onLessonFailed;
+    public event Action<string> onStepUpdated;
+    public event Action onLessonFailed;
+    public float time = 0;
     private string _newObjectName;
     private string _oldObjectName;
+    private Outline[] _outlines;
 
     private void Start()
     {
+        GetOutlines();
         TurnOffOutlines();
+        StartCoroutine(StartTimer());
+    }
+
+    private void GetOutlines()
+    {
+        _outlines = GameObject.FindObjectsOfType<Outline>();
     }
 
     private void TurnOffOutlines()
     {
-        var outlines = GameObject.FindObjectsOfType<Outline>();
-        foreach (Outline outline in outlines)
+        foreach (Outline outline in _outlines)
         {
             outline.enabled = false;
         }
     }
 
-    private void Update()
+    IEnumerator StartTimer()
     {
-        SetOutlineAndPartName();
-        UserClick();
+        while (!LessonApplication.Instance.model.IsFinished)
+        {
+            time += Time.deltaTime;
+            yield return null;
+        }
     }
 
-    private void SetOutlineAndPartName()
+    public bool LessonStopped() =>
+        LessonApplication.Instance.model.IsFinished || LessonApplication.Instance.model.isFailed;
+
+    public void CheckOutlineAndPartName(GameObject obj)
     {
-        RaycastHit hit;
-        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-        if (Physics.Raycast(ray, out hit, 100.0f))
+        _newObjectName = obj.name;
+        var outline = obj.GetComponent<Outline>();
+        if (outline != null)
         {
-            _newObjectName = hit.transform.name;
-            var step = hit.transform.GetComponent<Outline>();
-            if (step != null)
+            outline.enabled = true;
+            LessonApplication.Instance.view.partNameText.text = obj.GetComponent<Step>().PartName;
+            if (_newObjectName != _oldObjectName)
             {
-                step.enabled = true;
-                LessonApplication.Instance.view.partNameText.text = hit.transform.GetComponent<Step>().PartName;
-                if (_newObjectName != _oldObjectName)
+                var oldObject = GameObject.Find(_oldObjectName);
+                if (oldObject != null)
                 {
-                    var oldObject = GameObject.Find(_oldObjectName);
-                    if (oldObject != null)
-                    {
-                        oldObject.GetComponent<Outline>().enabled = false;
-                    }
-
-                    Debug.Log(10);
-                    _oldObjectName = _newObjectName;
+                    oldObject.GetComponent<Outline>().enabled = false;
                 }
+
+                Debug.Log(10);
+                _oldObjectName = _newObjectName;
             }
-            else
-            {
-                TurnOffOutlines();
-                LessonApplication.Instance.view.partNameText.text = "";
-            }
+        }
+        else
+        {
+            TurnOffOutlines();
+            LessonApplication.Instance.view.partNameText.text = "";
         }
     }
 
-    public void UserClick()
-    {
-        if (LessonApplication.Instance.model.isFinished || LessonApplication.Instance.model.isFailed)
-        {
-            return;
-        }
-
-        if (Input.GetMouseButtonDown(0))
-        {
-            RaycastHit hit;
-            Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-            if (Physics.Raycast(ray, out hit, 100.0f))
-            {
-                Step step = hit.transform.GetComponent<Step>();
-                if (step != null)
-                {
-                    CheckStep(step);
-                }
-            }
-        }
-    }
-
-    private void CheckStep(Step step)
+    public void CheckStep(Step step)
     {
         if (step.CurrentDescription == LessonApplication.Instance.model.GetCurrentStepDescription())
         {
@@ -95,6 +83,8 @@ public class LessonController : MonoBehaviour
         {
             Debug.Log("Wrong step");
             Debug.Log("Lesson Failed");
+            LessonApplication.Instance.model.isFailed = true;
+            TurnOffOutlines();
             onLessonFailed?.Invoke();
         }
     }
