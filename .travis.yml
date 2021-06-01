@@ -22,6 +22,7 @@ install:
 script:
 - ./travis-build/build.sh
 - ./travis-build/run-tests.sh
+- sonar-scanner
 
 after_success:
 - ./travis-build/export-unity-package.sh
@@ -37,3 +38,9 @@ deploy:
   overwrite: true
   on:
     tags: true 
+
+addons:
+  sonarcloud:
+    organization: "pushkinman"
+    token:
+      secure: "33b98fe05b81af8370a831ed4dd9995981ce1e20" # encrypted value of your token
